@@ -38,33 +38,24 @@ pipeline {
                 script {
                     currentBuild.description = "Users/sec:${params.usersPerSecond}/Duration:${params.duration}"
                     def userPerSecond = "${params.usersPerSecond}" as Double
+                    int usersPerNodeCount
                     if (userPerSecond >= splitTestsAbove) {
-                        def usersPerNodeCount = Math.round(userPerSecond / numberOfTestNodes)
-                        for (int i = 0; i < numberOfTestNodes; i++) {
-                            def num = i
-                            testGroups["node $num"] = {
-                                node {
-                                    def javaHome = tool name: jdkTool
-                                    deleteDir()
-                                    unstash 'load-test'
-                                    sh 'mv target/gatling-scale-out-1.0.tar.gz ./'
-                                    sh 'tar xvf gatling-scale-out-1.0.tar.gz'
-                                    sh "JAVA_HOME=$javaHome gatling-scale-out-1.0/bin/load-test --users-per-second=$usersPerNodeCount --test-duration=${params.duration}"
-                                    stash name: "node $num", includes: '**/simulation.log'
-                                }
-                            }
-                        }
-
+                        usersPerNodeCount = Math.round(userPerSecond / numberOfTestNodes)
                     } else {
-                        testGroups["default"] = {
+                        usersPerNodeCount = userPerSecond
+                        numberOfTestNodes = 1
+                    }
+                    for (int i = 0; i < numberOfTestNodes; i++) {
+                        def num = i
+                        testGroups["node $num"] = {
                             node {
                                 def javaHome = tool name: jdkTool
                                 deleteDir()
                                 unstash 'load-test'
                                 sh 'mv target/gatling-scale-out-1.0.tar.gz ./'
                                 sh 'tar xvf gatling-scale-out-1.0.tar.gz'
-                                sh "JAVA_HOME=$javaHome gatling-scale-out-1.0/bin/load-test --users-per-second=${params.usersPerSecond} --test-duration=${params.duration}"
-                                stash name: "default", includes: '**/simulation.log'
+                                sh "JAVA_HOME=$javaHome gatling-scale-out-1.0/bin/load-test --users-per-second=$usersPerNodeCount --test-duration=${params.duration}"
+                                stash name: "node $num", includes: '**/simulation.log'
                             }
                         }
                     }
@@ -75,14 +66,9 @@ pipeline {
         stage('Collect results') {
             steps {
                 script {
-                    if (testGroups.containsKey("default")) {
-                        unstash 'default'
-
-                    } else {
-                        for (int i = 0; i < numberOfTestNodes; i++) {
-                            def num = i
-                            unstash "node $i"
-                        }
+                    for (int i = 0; i < numberOfTestNodes; i++) {
+                        def num = i
+                        unstash "node $i"
                     }
                 }
                 sh 'mv target/gatling-scale-out-1.0.tar.gz ./'
