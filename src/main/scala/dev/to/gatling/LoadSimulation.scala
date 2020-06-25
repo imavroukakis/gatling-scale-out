@@ -18,12 +18,12 @@ class LoadSimulation extends Simulation with StrictLogging {
         case Failure(exception) => throw exception
       }
       val usersPerSecond = conf.usersPerSecond().toDouble
-      val catScenario =
-        scenario("Want a cat")
-          .exec(http("Get a random cat").get("http://aws.random.cat/meow"))
+      val postsScenario =
+        scenario("Posts")
+          .exec(http("Get 100 posts").get("http://jsonplaceholder.typicode.com/todos"))
 
       setUp(
-        catScenario.inject(
+        postsScenario.inject(
           constantUsersPerSec(usersPerSecond) during duration
         ).protocols(http)
       )
