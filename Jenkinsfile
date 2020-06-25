@@ -72,7 +72,7 @@ pipeline {
                     }
                 }
                 sh 'mv target/gatling-scale-out-1.0.tar.gz ./'
-                sh 'tar xv gatling-scale-out-1.0.tar.gz'
+                sh 'tar xf gatling-scale-out-1.0.tar.gz'
                 sh "gatling-scale-out-1.0/bin/load-test --report-only \"${env.WORKSPACE}/results\""
                 sh "mv results results-test-${env.BUILD_NUMBER}"
                 sh "tar zcf results-test-${env.BUILD_NUMBER}.tar.gz results-test-${env.BUILD_NUMBER}"
